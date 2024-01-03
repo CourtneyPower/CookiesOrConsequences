@@ -7,9 +7,11 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
 #include "Keypad_Particle.h"
-#include "IoTClassroom_CNM.h"
+//#include "IoTClassroom_CNM.h"
 #include "Colors.h"
 #include "neopixel.h"
+#include "Adafruit_GFX.h"
+#include "Adafruit_SSD1306.h"
 
 // Let Device OS manage the connection to the Particle Cloud
 SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -18,7 +20,7 @@ SYSTEM_THREAD(ENABLED);
 const byte ROWS = 4;
 const byte COLS = 4;
 char customKey;
-const int BRI = 15;
+const int BRI = 10;
 int gearAngle;
 const int PIXELCOUNT = 1;
 Adafruit_NeoPixel pixel(PIXELCOUNT, SPI1, WS2812B);
@@ -34,28 +36,43 @@ byte colPins [COLS] = {D17, D18, D19, D14};
 Keypad customKeypad = Keypad (makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 char secretKey[4] = {'9', '0', '0', '5'};
 char attemptKey[4];
-int x;
+int i, x;
 bool openSesameFunction(char compareSecret[4], char compareAttempt[4]);
 bool passwordMatch;
-
+const int OLED_RESET = -1;
+Adafruit_SSD1306 display(OLED_RESET);
 // setup() runs once, when the device is first turned on
 void setup() {
   // Put initialization like pinMode and begin functions here
-  Serial.begin(9600);
+Serial.begin(9600);
+waitFor(Serial.isConnected, 10000);
   myServo.attach(A2);
   pixel.begin();
   pixel.setBrightness(BRI);
-  //pixel.clear();
   pixel.show();
   x=0;
   gearAngle = 90;
   myServo.write(gearAngle);
+ display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
+ display.display();
+ delay(2000);
+ display.clearDisplay();
+ display.display();
+ display.setTextSize(2);
+display.setTextColor(WHITE);
+display.setCursor(0,0);
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
   // The core of your code will likely live here.
 //Serial.printf("SecretKey is %c, %c, %c, %c\n", secretKey[0], secretKey[1], secretKey[2], secretKey[3]);
+// pixels to always be on
+for (i=0; i<= PIXELCOUNT; i++) {
+  pixel.setPixelColor(i, teal);
+  pixel.show();
+}
+
 x=0;
 while (x < 4){
   customKey = customKeypad.getKey();
@@ -71,28 +88,40 @@ while (x < 4){
  if (x>=4){
    Serial.printf("AttemptKey is %c, %c, %c, %c\n", attemptKey[0], attemptKey[1], attemptKey[2], attemptKey[3]);
 passwordMatch = openSesameFunction(secretKey, attemptKey);
-
+display.setCursor(0,0);
+display.clearDisplay();
+display.display();
 if (passwordMatch){
   pixel.setPixelColor(0, green);
   pixel.show();
-  Serial.printf("Congrats! Your attempt matches the password\n");
+  display.printf("Take Only One\n");
+  display.display();
 
   if (gearAngle == 0) {
     gearAngle = 90;
     myServo.write(gearAngle);
+    display.clearDisplay();
+    display.display();
+      display.printf("LOCKED\n");
+  display.display();
   }
   else {
   gearAngle = 0;
   myServo.write(gearAngle);
+
 }
 }
+// display.clearDisplay();
+// display.display();
 
 if (!passwordMatch) {
   pixel.setPixelColor(0, red);
   pixel.show();
-  Serial.printf("try again\n");
+  display.printf("Try Again\n");
+display.display();
 }
 }
+
 }
 //create a function
 bool openSesameFunction(char compareSecret[4], char compareAttempt[4]) {

@@ -7,14 +7,15 @@
 // Include Particle Device OS APIs
 #include "Particle.h"
 #include "Keypad_Particle.h"
-//#include "IoTClassroom_CNM.h"
+#include "IoTClassroom_CNM.h"
 #include "Colors.h"
 #include "neopixel.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_SSD1306.h"
 
 // Let Device OS manage the connection to the Particle Cloud
-SYSTEM_MODE(SEMI_AUTOMATIC);
+//SYSTEM_MODE(SEMI_AUTOMATIC);
+SYSTEM_MODE(MANUAL);
 SYSTEM_THREAD(ENABLED);
 
 const byte ROWS = 4;
@@ -41,11 +42,23 @@ bool openSesameFunction(char compareSecret[4], char compareAttempt[4]);
 bool passwordMatch;
 const int OLED_RESET = -1;
 Adafruit_SSD1306 display(OLED_RESET);
+const int GOODWEMO = 2;
+const int BADWEMO = 4;
 // setup() runs once, when the device is first turned on
 void setup() {
   // Put initialization like pinMode and begin functions here
 Serial.begin(9600);
-waitFor(Serial.isConnected, 10000);
+waitFor(Serial.isConnected, 15000);
+WiFi.on();
+  WiFi.clearCredentials();
+  WiFi.setCredentials("IoTNetwork");
+  
+  WiFi.connect();
+  while(WiFi.connecting()) {
+    Serial.printf(".");
+  }
+  Serial.printf("\n\n");
+
   myServo.attach(A2);
   pixel.begin();
   pixel.setBrightness(BRI);
@@ -61,10 +74,14 @@ waitFor(Serial.isConnected, 10000);
  display.setTextSize(2);
 display.setTextColor(WHITE);
 display.setCursor(0,0);
+delay(20000);
+wemoWrite(GOODWEMO, LOW);
+wemoWrite(BADWEMO, LOW);
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
+
   // The core of your code will likely live here.
 //Serial.printf("SecretKey is %c, %c, %c, %c\n", secretKey[0], secretKey[1], secretKey[2], secretKey[3]);
 // pixels to always be on
@@ -96,6 +113,8 @@ if (passwordMatch){
   pixel.show();
   display.printf("Take Only One\n");
   display.display();
+wemoWrite(GOODWEMO, HIGH);
+wemoWrite(BADWEMO, LOW);
 
   if (gearAngle == 0) {
     gearAngle = 90;
@@ -111,14 +130,14 @@ if (passwordMatch){
 
 }
 }
-// display.clearDisplay();
-// display.display();
 
 if (!passwordMatch) {
   pixel.setPixelColor(0, red);
   pixel.show();
   display.printf("Try Again\n");
 display.display();
+wemoWrite(BADWEMO, HIGH);
+wemoWrite(GOODWEMO, LOW);
 }
 }
 

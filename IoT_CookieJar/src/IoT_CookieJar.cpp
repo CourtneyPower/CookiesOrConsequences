@@ -35,15 +35,17 @@ char hexaKeys [ROWS][COLS] = {
 byte rowPins [ROWS] = {D8, D9, D16, D15};
 byte colPins [COLS] = {D17, D18, D19, D14};
 Keypad customKeypad = Keypad (makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-char secretKey[4] = {'9', '0', '0', '5'};
+char secretKey[4] = {'9', '0', '0', '5'}; //unlock code
 char attemptKey[4];
-int i, x;
+int i, x, currentTime;
 bool openSesameFunction(char compareSecret[4], char compareAttempt[4]);
 bool passwordMatch;
 const int OLED_RESET = -1;
 Adafruit_SSD1306 display(OLED_RESET);
 const int GOODWEMO = 2;
 const int BADWEMO = 4;
+const int BULB_3 = 3;
+const int BULB_5 = 5;
 // setup() runs once, when the device is first turned on
 void setup() {
   // Put initialization like pinMode and begin functions here
@@ -62,9 +64,10 @@ WiFi.on();
   myServo.attach(A2);
   pixel.begin();
   pixel.setBrightness(BRI);
+  pixel.clear();
   pixel.show();
-  x=0;
-  gearAngle = 90;
+  x=0; //characters in array via keypad
+  gearAngle = 90; //locked angle
   myServo.write(gearAngle);
  display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
  display.display();
@@ -74,85 +77,103 @@ WiFi.on();
  display.setTextSize(2);
 display.setTextColor(WHITE);
 display.setCursor(0,0);
-delay(20000);
+delay(10000); //allow signal to Wemos
 wemoWrite(GOODWEMO, LOW);
 wemoWrite(BADWEMO, LOW);
+//setHue(BULB_3,false,0,0,0);
+setHue(BULB_5,false,0,0,0);
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
-
+currentTime = millis();
   // The core of your code will likely live here.
 //Serial.printf("SecretKey is %c, %c, %c, %c\n", secretKey[0], secretKey[1], secretKey[2], secretKey[3]);
-// pixels to always be on
+// neopixels to always be on as interior lighting
 for (i=0; i<= PIXELCOUNT; i++) {
   pixel.setPixelColor(i, teal);
   pixel.show();
 }
 
-x=0;
+x=0; //reset array to 0 at beginning of each loop to allow for new code attempt
 while (x < 4){
   customKey = customKeypad.getKey();
+  // wemoWrite(GOODWEMO, LOW);
+  // wemoWrite(BADWEMO, LOW);
+  //setHue(BULB_3,true,HueViolet,255,255);
+  setHue(BULB_5,true,HueViolet,255,255);
   if (customKey) {
  // Serial.printf("Key Pressed: %c\n", customKey);
-// Serial.printf("Key Pressed (Hex Code) 0x%02X\n", customKey);
   attemptKey[x] = customKey;
    pixel.setPixelColor(0, purple);
    pixel.show();
+
    x = x+1;
  }
 }
  if (x>=4){
    Serial.printf("AttemptKey is %c, %c, %c, %c\n", attemptKey[0], attemptKey[1], attemptKey[2], attemptKey[3]);
 passwordMatch = openSesameFunction(secretKey, attemptKey);
-display.setCursor(0,0);
+display.setCursor(0,0); //reset cursor position to 0,0 for each attempt
 display.clearDisplay();
 display.display();
 if (passwordMatch){
   pixel.setPixelColor(0, green);
   pixel.show();
-  display.printf("Take Only One\n");
+ // display.setTextSize(1);
+  display.printf("Take Only One\n"); //OLED screen
+  display.printf("Reenter Code to Lock\n");
   display.display();
-wemoWrite(GOODWEMO, HIGH);
-wemoWrite(BADWEMO, LOW);
+wemoWrite(GOODWEMO, HIGH); //aroma on
+wemoWrite(BADWEMO, LOW); //alarm off
+//setHue(BULB_3,true,HueGreen,255,255);
+setHue(BULB_5,true,HueGreen,255,255);
 
-  if (gearAngle == 0) {
+  if (gearAngle == 0) { //if correct code is inputted but lock in unlocked (gear angle = 0) then the system is reset to lock position and OLED shows 'locked'
     gearAngle = 90;
-    myServo.write(gearAngle);
+    myServo.write(gearAngle); //write gear to lock position
+    display.setCursor(0,0);
     display.clearDisplay();
     display.display();
-      display.printf("LOCKED\n");
+    display.printf("LOCKED\n");
   display.display();
+  wemoWrite(GOODWEMO, LOW); //aroma off
+  //setHue(BULB_3,false,0,0,0); //lights off
+  setHue(BULB_5,false,0,0,0);
   }
   else {
   gearAngle = 0;
   myServo.write(gearAngle);
-
 }
-}
+} //close of password match = true
 
 if (!passwordMatch) {
   pixel.setPixelColor(0, red);
   pixel.show();
-  display.printf("Try Again\n");
+  display.printf("Try Again\n"); //OLED screen
 display.display();
-wemoWrite(BADWEMO, HIGH);
-wemoWrite(GOODWEMO, LOW);
-}
-}
+wemoWrite(BADWEMO, HIGH); //alarm on
+wemoWrite(GOODWEMO, LOW); //smell off
+//setHue(BULB_3,true,HueRed,255,255);
+setHue(BULB_5,true,HueRed,255,255);
+} //close password match = false
 
-}
+} //close x>=4
+
+} //close VOID LOOP
+
 //create a function
 bool openSesameFunction(char compareSecret[4], char compareAttempt[4]) {
 bool openSesame;
-int i = 0;
-for (i = 0; i<4; i++) {
-if (compareSecret[i] == compareAttempt[i]) {
+int j = 0;
+for (j = 0; j<4; j++) {
+  if (compareSecret[j] == compareAttempt[j]) {
   openSesame = true;
-}
-else {
+  }
+  else {
   openSesame = false;
-}
+  break;
+  }
 }
 return openSesame;
 }

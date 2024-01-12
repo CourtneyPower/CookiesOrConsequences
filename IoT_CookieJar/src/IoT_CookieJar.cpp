@@ -23,14 +23,14 @@ const byte COLS = 4;
 char customKey;
 const int BRI = 30;
 int gearAngle;
-const int PIXELCOUNT = 1;
+const int PIXELCOUNT = 5;
 Adafruit_NeoPixel pixel(PIXELCOUNT, SPI1, WS2812B);
 Servo myServo;
 char hexaKeys [ROWS][COLS] = {
-  {'1', '2', '3', 'A'},
-  {'4', '5', '6', 'B'},
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
+  {'1', '2', 'A', '3'},
+  {'4', '5', 'B', '6'},
+  {'7', '8', 'C', '9'},
+  {'*', '0', 'D', '#'}
 };
 byte rowPins [ROWS] = {D8, D9, D16, D15};
 byte colPins [COLS] = {D17, D18, D19, D14};
@@ -93,6 +93,7 @@ setHue(BULB_3,false,0,0,0);
 void loop() {
 currentTime = millis();
 // neopixels to always be on as interior lighting
+pixel.clear();
 for (i=0; i<= PIXELCOUNT; i++) {
   pixel.setPixelColor(i, teal);
   pixel.show();
@@ -101,11 +102,12 @@ for (i=0; i<= PIXELCOUNT; i++) {
 triggered = digitalRead(MOTION_PIR);
 Serial.printf("triggered is %i\n", triggered);
 if (triggered == HIGH) {
+    display.clearDisplay();
     display.printf("Hungry?\n"); //OLED screen
     display.printf("Enter the Code\n");
     display.printf("COOKIES\n");
     display.display();
-    setHue(BULB_3,true,HueOrange,255,175);
+    setHue(BULB_3,true,HueYellow,100,255);
     triggered = LOW;
     x=0; //reset array to 0 at beginning of each loop to allow for new code attempt
     while (x < 4){
@@ -113,7 +115,12 @@ if (triggered == HIGH) {
       if (customKey) {
  // Serial.printf("Key Pressed: %c\n", customKey);
       attemptKey[x] = customKey;
-      pixel.setPixelColor(0, purple);
+      pixel.clear();
+      pixel.setPixelColor(0,purple);
+      pixel.setPixelColor(1, purple);
+       pixel.setPixelColor(2, purple);
+        pixel.setPixelColor(3, purple);
+         pixel.setPixelColor(4, purple);
       pixel.show();
        display.clearDisplay();
        display.display();
@@ -127,42 +134,52 @@ if (triggered == HIGH) {
   }
  
  if (x>=4){
-   //Serial.printf("AttemptKey is %c, %c, %c, %c\n", attemptKey[0], attemptKey[1], attemptKey[2], attemptKey[3]);
+  Serial.printf("AttemptKey is %c, %c, %c, %c\n", attemptKey[0], attemptKey[1], attemptKey[2], attemptKey[3]);
+x=0;
 passwordMatch = openSesameFunction(secretKey, attemptKey);
 display.setCursor(0,0); //reset cursor position to 0,0 for each attempt
 display.clearDisplay();
 //display.display();
 if (passwordMatch){
+  pixel.clear();
   pixel.setPixelColor(0, green);
+  pixel.setPixelColor(1, green);
+    pixel.setPixelColor(2, green);
+      pixel.setPixelColor(3, green);
+        pixel.setPixelColor(4, green);
   pixel.show();
  // display.setTextSize(1);
+ //passwordMatch = !passwordMatch;
   display.printf("Take Only One\n"); //OLED screen
   display.printf("Reenter Code to Lock\n");
   display.display();
 wemoWrite(GOODWEMO, HIGH); //aroma on
 wemoWrite(BADWEMO, LOW); //alarm off
-setHue(BULB_3,true,HueGreen,255,175);
-
-
-  if (gearAngle == 0) { //if correct code is inputted but lock in unlocked (gear angle = 0) then the system is reset to lock position and OLED shows 'locked'
+setHue(BULB_3,true,HueGreen,100,255);
+    if (gearAngle == 0) { //if correct code is inputted but lock in unlocked (gear angle = 0) then the system is reset to lock position and OLED shows 'locked'
     gearAngle = 90;
     myServo.write(gearAngle); //write gear to lock position
     display.setCursor(0,0);
     display.clearDisplay();
-    display.display();
+    //display.display();
     display.printf("LOCKED\n");
   display.display();
   wemoWrite(GOODWEMO, LOW); //aroma off
   setHue(BULB_3,false,0,0,0); //lights off
-  }
-  else {
+   }
+   else {
   gearAngle = 0;
-  myServo.write(gearAngle);
-  }
+  myServo.write(gearAngle); //unlock the lock
+   }
 } //close of password match = true
-//if (!passwordMatch) {
-else {
-  pixel.setPixelColor(0, red);
+if (!passwordMatch) {
+//else {
+  pixel.clear();
+    pixel.setPixelColor (0,red);
+      pixel.setPixelColor(1, red);
+       pixel.setPixelColor(2, red);
+        pixel.setPixelColor(3, red);
+         pixel.setPixelColor(4, red);
   pixel.show();
   display.printf("Try Again\n"); //OLED screen
 display.display();

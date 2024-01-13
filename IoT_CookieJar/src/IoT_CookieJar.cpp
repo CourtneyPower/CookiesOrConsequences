@@ -12,6 +12,7 @@
 #include "neopixel.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_SSD1306.h"
+#include "IoTTimer.h"
 
 // Let Device OS manage the connection to the Particle Cloud
 //SYSTEM_MODE(SEMI_AUTOMATIC);
@@ -21,7 +22,7 @@ SYSTEM_THREAD(ENABLED);
 const byte ROWS = 4;
 const byte COLS = 4;
 char customKey;
-const int BRI = 30;
+const int BRI = 80;
 int gearAngle;
 const int PIXELCOUNT = 5;
 Adafruit_NeoPixel pixel(PIXELCOUNT, SPI1, WS2812B);
@@ -48,6 +49,8 @@ const int BADWEMO = 4;
 const int BULB_3 = 3;
 const int BULB_5 = 5;
 const int MOTION_PIR = D4;
+IoTTimer ambianceTimer;
+IoTTimer attemptTimer;
 // setup() runs once, when the device is first turned on
 void setup() {
   // Put initialization like pinMode and begin functions here
@@ -87,30 +90,43 @@ wemoWrite(GOODWEMO, LOW);
 wemoWrite(BADWEMO, LOW);
 setHue(BULB_3,false,0,0,0);
 
+ambianceTimer.startTimer(1);
 }
 
 // loop() runs over and over again, as quickly as it can execute.
 void loop() {
 currentTime = millis();
 // neopixels to always be on as interior lighting
-pixel.clear();
-for (i=0; i<= PIXELCOUNT; i++) {
-  pixel.setPixelColor(i, teal);
-  pixel.show();
-}
+  if(ambianceTimer.isTimerReady()) {
+    setHue(BULB_3,false,0,0,0);
+    pixel.clear();
+    for (i=0; i<= PIXELCOUNT; i++) {
+    pixel.setPixelColor(i, teal);
+    pixel.show();
+    }
+  } //close isTimerReady
 
 triggered = digitalRead(MOTION_PIR);
 Serial.printf("triggered is %i\n", triggered);
 if (triggered == HIGH) {
     display.clearDisplay();
+    display.setCursor(0,0);
     display.printf("Hungry?\n"); //OLED screen
     display.printf("Enter the Code\n");
     display.printf("COOKIES\n");
     display.display();
+          pixel.clear();
+      pixel.setPixelColor(0,yellow);
+      pixel.setPixelColor(1, yellow);
+       pixel.setPixelColor(2, yellow);
+        pixel.setPixelColor(3, yellow);
+         pixel.setPixelColor(4, yellow);
+      pixel.show();
     setHue(BULB_3,true,HueYellow,100,255);
     triggered = LOW;
     x=0; //reset array to 0 at beginning of each loop to allow for new code attempt
-    while (x < 4){
+    attemptTimer.startTimer(20000);
+    while ((x < 4) && !attemptTimer.isTimerReady()) {
     customKey = customKeypad.getKey();
       if (customKey) {
  // Serial.printf("Key Pressed: %c\n", customKey);
@@ -129,18 +145,19 @@ if (triggered == HIGH) {
       }
     } //end of filling the guess array, x<4
   } 
-  else if (triggered == LOW) {
-   setHue(BULB_3, false, 0,0,0);
-  }
+  // else if (triggered == LOW) {
+  //  setHue(BULB_3, false, 0,0,0);
+  // }
  
  if (x>=4){
   Serial.printf("AttemptKey is %c, %c, %c, %c\n", attemptKey[0], attemptKey[1], attemptKey[2], attemptKey[3]);
 x=0;
 passwordMatch = openSesameFunction(secretKey, attemptKey);
-display.setCursor(0,0); //reset cursor position to 0,0 for each attempt
 display.clearDisplay();
+display.setCursor(0,0); //reset cursor position to 0,0 for each attempt
 //display.display();
 if (passwordMatch){
+    ambianceTimer.startTimer(5000);
   pixel.clear();
   pixel.setPixelColor(0, green);
   pixel.setPixelColor(1, green);
@@ -156,11 +173,12 @@ if (passwordMatch){
 wemoWrite(GOODWEMO, HIGH); //aroma on
 wemoWrite(BADWEMO, LOW); //alarm off
 setHue(BULB_3,true,HueGreen,100,255);
+
     if (gearAngle == 0) { //if correct code is inputted but lock in unlocked (gear angle = 0) then the system is reset to lock position and OLED shows 'locked'
     gearAngle = 90;
     myServo.write(gearAngle); //write gear to lock position
-    display.setCursor(0,0);
     display.clearDisplay();
+        display.setCursor(0,0);
     //display.display();
     display.printf("LOCKED\n");
   display.display();
@@ -174,6 +192,7 @@ setHue(BULB_3,true,HueGreen,100,255);
 } //close of password match = true
 if (!passwordMatch) {
 //else {
+ambianceTimer.startTimer(5000);
   pixel.clear();
     pixel.setPixelColor (0,red);
       pixel.setPixelColor(1, red);
@@ -186,7 +205,6 @@ display.display();
 wemoWrite(BADWEMO, HIGH); //alarm on
 wemoWrite(GOODWEMO, LOW); //smell off
 setHue(BULB_3,true,HueRed,255,175);
-
 } //close password match = false
 
 } //close x>=4

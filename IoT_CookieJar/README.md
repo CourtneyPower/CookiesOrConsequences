@@ -1,5 +1,12 @@
 # IoT_CookieJar
 
+This project is for a cookie jar with a coded lock.  You will need access to a 3D printer, the ability to fabricate a cookie jar (I used an epilog laser with 1/8" plywood), neopixels, HUE lights, WEMO outlets, a servo motor, OLED screen and a PIR motion sensor.
+
+For more details on this project, please visit my Hackster Account
+https://www.hackster.io/crpower05/cookies-or-consequences-2a2908
+
+
+
 This firmware project was created using [Particle Developer Tools](https://www.particle.io/developer-tools/) and is compatible with all [Particle Devices](https://www.particle.io/devices/).
 
 Feel free to replace this README.md file with your own content, or keep it for reference.

@@ -45,7 +45,7 @@ const int OLED_RESET = -1;
 Adafruit_SSD1306 display(OLED_RESET);
 const int GOODWEMO = 2; //smell
 const int BADWEMO = 4; //alarm
-const int BULB_3 = 3;
+const int BULB_3 = 3; //hue light at my desk
 const int MOTION_PIR = D4;
 IoTTimer ambianceTimer; 
 IoTTimer attemptTimer;
@@ -73,7 +73,7 @@ WiFi.on();
   x=0; //character position in array via keypad
   gearAngle = 90; //locked angle
   myServo.write(gearAngle); //move lock to locked position
- display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
+ display.begin(SSD1306_SWITCHCAPVCC, 0x3c); //initialize OLED
  display.display();
  delay(2000);
  display.clearDisplay();
@@ -82,12 +82,12 @@ WiFi.on();
 display.setTextColor(WHITE);
 display.setCursor(0,0);
 triggered = LOW; //start with no movement
-delay(5000); //allow signal to Wemos
+delay(5000); //allow signal to Wemos, write everyone OFF/LOW
 wemoWrite(GOODWEMO, LOW);
 wemoWrite(BADWEMO, LOW);
 setHue(BULB_3,false,0,0,0);
 
-ambianceTimer.startTimer(1); //immediately allow ambiance lighting to start once in LOOP
+ambianceTimer.startTimer(1); //1ms, immediately allow ambiance lighting to start once in LOOP
 }
 
 // loop() runs over and over again, as quickly as it can execute.
@@ -95,7 +95,7 @@ void loop() {
 currentTime = millis();
 // neopixels to always be on as interior lighting
   if(ambianceTimer.isTimerReady()) {
-    setHue(BULB_3,false,0,0,0); //Hue light is off until someone approaches
+    setHue(BULB_3,true,HueBlue,100,255); //Hue light is Blue until someone approaches
     pixel.clear();
     for (i=0; i<= PIXELCOUNT; i++) {
     pixel.setPixelColor(i, teal);
@@ -104,7 +104,7 @@ currentTime = millis();
   } //close isTimerReady - Ambiance
 
 triggered = digitalRead(MOTION_PIR);
-//Serial.printf("triggered is %i\n", triggered); //useful in testing to see if PIR is working
+Serial.printf("triggered is %i\n", triggered); //useful in testing to see if PIR is working
 if (triggered == HIGH) { //motion detected
     display.clearDisplay();
     display.setCursor(0,0);
